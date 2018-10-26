@@ -24,7 +24,7 @@ const getUser = gql`
 
 const updateUser = gql`
     mutation UpdateUser($id: ID!, $input: UserInput!) {
-        updateGroup(id: $id, input: $input) {
+        updateUser(id: $id, input: $input) {
             id
             name
         }
