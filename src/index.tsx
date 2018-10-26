@@ -70,9 +70,14 @@ export class EditorAutosave extends React.Component<EditorAutosaveProps> {
     private localData: any;
     /** Throttled version of mutation function. */
     private throttledMutate: MutationFn;
+    /** Flag that keeps track of whether the throttled mutation function was already created. */
+    private throttledMutateCreated: boolean = false;
 
-    /** Creates the throttled mutation function. */
+    /** Creates the throttled mutation function if needed. */
     private initMutate = (mutate: MutationFn) => {
+        if (this.throttledMutateCreated) {
+            return;
+        }
         const { waitTime, throttleType } = this.props;
 
         // Define throttle type
@@ -94,6 +99,8 @@ export class EditorAutosave extends React.Component<EditorAutosaveProps> {
                 console.log(error);
             }
         }, waitTime, throttleOptions);
+
+        this.throttledMutateCreated = true;
     }
 
     /** Updates the local data and triggers a render. */
@@ -154,9 +161,6 @@ export class EditorAutosave extends React.Component<EditorAutosaveProps> {
                 return <Mutation
                     {...mutationProps as MutationProps}
                     onCompleted={(data) => {
-                        // Clear the local data since it needs to be filled from the query cache
-                        // after a mutation
-                        this.localData = null;
                         // Call the onCompleted function provided by the user of the component
                         if (mutationOnCompletedFromProps) {
                             mutationOnCompletedFromProps(data);
@@ -164,10 +168,8 @@ export class EditorAutosave extends React.Component<EditorAutosaveProps> {
                     }}>
                     {(mutate, mutationResult) => {
 
-                        if (!this.throttledMutate) {
-                            // First run: create throttled mutate
-                            this.initMutate(mutate);
-                        }
+                        // Verify that the throttled mutate function was created
+                        this.initMutate(mutate);
 
                         // Call the render prop
                         return children({
