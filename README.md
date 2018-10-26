@@ -4,8 +4,6 @@ A React component that allows for editing and autosave behavior, combining an Ap
 ## Installation 
 ```sh
 npm install react-apollo-autosave --save
-yarn add react-apollo-autosave
-bower install react-apollo-autosave --save
 ```
 
 ## Example
