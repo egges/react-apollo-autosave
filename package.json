@@ -2,8 +2,10 @@
   "name": "react-apollo-autosave",
   "version": "0.0.1",
   "description": "React component that allows for editing and autosave behaviour, combining an Apollo Query and Mutation.",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types" : "dist/index.d.ts",
   "scripts": {
+    "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -19,9 +21,22 @@
     "data"
   ],
   "author": "Arjan Egges",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/egges/react-apollo-autosave/issues"
   },
-  "homepage": "https://github.com/egges/react-apollo-autosave#readme"
+  "homepage": "https://github.com/egges/react-apollo-autosave#readme",
+  "devDependencies": {
+    "typescript": "^3.1.3"
+  },
+  "dependencies": {
+    "@types/graphql": "^14.0.3",
+    "@types/lodash": "^4.14.117",
+    "@types/react": "^16.4.18",
+    "apollo-client": "^2.4.3",
+    "graphql": "^14.0.2",
+    "lodash": "^4.17.11",
+    "react": "^16.6.0",
+    "react-apollo": "^2.2.4"
+  }
 }
