@@ -1,0 +1,27 @@
+{
+  "name": "react-apollo-autosave",
+  "version": "0.0.1",
+  "description": "React component that allows for editing and autosave behaviour, combining an Apollo Query and Mutation.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/egges/react-apollo-autosave.git"
+  },
+  "keywords": [
+    "react",
+    "apollo",
+    "autosave",
+    "editor",
+    "local",
+    "data"
+  ],
+  "author": "Arjan Egges",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/egges/react-apollo-autosave/issues"
+  },
+  "homepage": "https://github.com/egges/react-apollo-autosave#readme"
+}
