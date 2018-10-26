@@ -1,9 +1,9 @@
 {
   "name": "react-apollo-autosave",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "React component that allows for editing and autosave behaviour, combining an Apollo Query and Mutation.",
   "main": "dist/index.js",
-  "types" : "dist/index.d.ts",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
