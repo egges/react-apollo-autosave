@@ -37,7 +37,8 @@ class MyReactComponent {
             query={getUser}            // the query to perform to retrieve the data
             variables={{ id }}         // variables passed to the query
             mutation={updateUser}      // the mutation to perform to update the data
-            mutateOnUpdate={true}      // automatically perform the mutate when the update function is called
+            mutateOnUpdate={true}      /* automatically perform the mutate when the update
+                                          function is called */
         >
             {({ update, mutate, queryResult: { loading, error, data } }) => {
                 // deal with loading and error cases
@@ -57,12 +58,14 @@ class MyReactComponent {
                     // only strings with length > 0 are a valid username
                     const nameIsValid = input.name.length > 0;
 
-                    // Call the update function. The first parameter contains the new local
-                    // data (should be the same structure as the query result). The second parameter
-                    // contains the information needed to perform the mutation. The third parameter
-                    // overrides the mutateOnUpdate value. In this case, the mutation will not be
-                    // performed if the user name is not valid, but the local data will be updated so that
-                    // the contents of the input element changes when the user types something.
+                    /* Call the update function. The first parameter contains the new local
+                       data (should be the same structure as the query result). The second parameter
+                       contains the information needed to perform the mutation. The third parameter
+                       overrides the mutateOnUpdate value. In this case, the mutation will not be
+                       performed if the user name is not valid, but the local data will be updated
+                       so that the contents of the input element changes when the user types
+                       something.
+                    */
                     update({ user: input }, { variables: { id, input } }, nameIsValid);
                 }}>;
             }
