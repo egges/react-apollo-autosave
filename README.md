@@ -35,7 +35,7 @@ class MyReactComponent {
         const id = "someUser";
         return <EditorAutosave
             query={getUser}            // the query to perform to retrieve the data
-            variables={{ id }}         // variables passed to the query
+            queryVariables={{ id }}    // variables passed to the query
             mutation={updateUser}      // the mutation to perform to update the data
             mutateOnUpdate={true}      /* automatically perform the mutate when the update
                                           function is called */
