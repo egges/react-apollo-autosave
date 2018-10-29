@@ -1,6 +1,7 @@
 import React = require("react");
 import { DocumentNode } from "graphql";
 import { QueryProps, QueryResult, OperationVariables, MutationProps, MutationResult, MutationFn, MutationOptions } from "react-apollo";
+import { ApolloError } from "apollo-client";
 /** Signature of the update function which updates the local data and optionally commits the update to the backend. */
 export declare type UpdateFunction = (data: any, options?: MutationOptions, mutate?: boolean) => void;
 /** Object of arguments passed to the editor render prop. */
@@ -24,8 +25,10 @@ export interface EditorAutosaveProps {
     queryProps?: Partial<QueryProps>;
     /** GraphQL mutation. This overrides the mutation field in the mutationProps object. */
     mutation?: DocumentNode;
-    /** Callback for when the mutation has completed successfully. This overrides the onCompleted callback function in the mutationProps object. */
+    /** Callback for when the mutation has completed successfully. This performs the same function as the onCompleted callback function in the mutationProps object. */
     mutationOnCompleted?: (data: any) => void;
+    /** Callback for when the mutation resulted in an error. This performs the same function as the onError callback function in the mutationProps object. */
+    mutationOnError?: (error: ApolloError) => void;
     /** Additional properties for the mutation. */
     mutationProps?: Partial<MutationProps>;
     /** Render property, with results and update functions. */
@@ -57,7 +60,9 @@ export declare class EditorAutosave extends React.Component<EditorAutosaveProps>
     private localData;
     /** Throttled version of mutation function. */
     private throttledMutate;
-    /** Creates the throttled mutation function. */
+    /** Flag that keeps track of whether the throttled mutation function was already created. */
+    private throttledMutateCreated;
+    /** Creates the throttled mutation function if needed. */
     private initMutate;
     /** Updates the local data and triggers a render. */
     private updateData;

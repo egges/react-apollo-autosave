@@ -70,8 +70,13 @@ var EditorAutosave = /** @class */ (function (_super) {
     __extends(EditorAutosave, _super);
     function EditorAutosave(props) {
         var _this = _super.call(this, props) || this;
-        /** Creates the throttled mutation function. */
+        /** Flag that keeps track of whether the throttled mutation function was already created. */
+        _this.throttledMutateCreated = false;
+        /** Creates the throttled mutation function if needed. */
         _this.initMutate = function (mutate) {
+            if (_this.throttledMutateCreated) {
+                return;
+            }
             var _a = _this.props, waitTime = _a.waitTime, throttleType = _a.throttleType;
             // Define throttle type
             var throttleOptions = { trailing: true, leading: true };
@@ -100,6 +105,7 @@ var EditorAutosave = /** @class */ (function (_super) {
                     }
                 });
             }); }, waitTime, throttleOptions);
+            _this.throttledMutateCreated = true;
         };
         /** Updates the local data and triggers a render. */
         _this.updateData = function (data, options, mutate) { return __awaiter(_this, void 0, void 0, function () {
@@ -138,7 +144,7 @@ var EditorAutosave = /** @class */ (function (_super) {
     }
     EditorAutosave.prototype.render = function () {
         var _this = this;
-        var _a = this.props, query = _a.query, mutation = _a.mutation, mutationOnCompleted = _a.mutationOnCompleted, queryVariables = _a.queryVariables, children = _a.children;
+        var _a = this.props, query = _a.query, mutation = _a.mutation, mutationOnCompleted = _a.mutationOnCompleted, mutationOnError = _a.mutationOnError, queryVariables = _a.queryVariables, children = _a.children;
         var _b = this.props, queryProps = _b.queryProps, mutationProps = _b.mutationProps;
         // Override query and query variables
         queryProps = queryProps || {};
@@ -147,8 +153,6 @@ var EditorAutosave = /** @class */ (function (_super) {
         // Override mutation and store onCompleted to call later
         mutationProps = mutationProps || {};
         mutationProps.mutation = mutation || mutationProps.mutation;
-        var mutationOnCompletedFromProps = mutationOnCompleted || mutationProps.onCompleted;
-        delete mutationProps.onCompleted;
         return React.createElement(react_apollo_1.Query, __assign({}, queryProps), function (queryResult) {
             var loading = queryResult.loading, data = queryResult.data;
             if (_this.localData) {
@@ -160,18 +164,28 @@ var EditorAutosave = /** @class */ (function (_super) {
                 _this.localData = lodash_1.cloneDeep(data);
             }
             return React.createElement(react_apollo_1.Mutation, __assign({}, mutationProps, { onCompleted: function (data) {
-                    // Clear the local data since it needs to be filled from the query cache
-                    // after a mutation
-                    _this.localData = null;
                     // Call the onCompleted function provided by the user of the component
-                    if (mutationOnCompletedFromProps) {
-                        mutationOnCompletedFromProps(data);
+                    if (mutationOnCompleted) {
+                        mutationOnCompleted(data);
+                    }
+                    // Call the original onCompleted method from the props
+                    if (mutationProps && mutationProps.onCompleted) {
+                        mutationProps.onCompleted(data);
+                    }
+                }, onError: function (error) {
+                    // Reset the local data from the query
+                    _this.localData = lodash_1.cloneDeep(data);
+                    // Call the onError function provided by the user of the component
+                    if (mutationOnError) {
+                        mutationOnError(error);
+                    }
+                    // Call the original onError method from the props
+                    if (mutationProps && mutationProps.onError) {
+                        mutationProps.onError(error);
                     }
                 } }), function (mutate, mutationResult) {
-                if (!_this.throttledMutate) {
-                    // First run: create throttled mutate
-                    _this.initMutate(mutate);
-                }
+                // Verify that the throttled mutate function was created
+                _this.initMutate(mutate);
                 // Call the render prop
                 return children({
                     queryResult: queryResult, mutationResult: mutationResult,

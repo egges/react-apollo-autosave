@@ -3,6 +3,7 @@ import { DocumentNode }                                     from "graphql";
 import { Query, QueryProps, QueryResult,
     OperationVariables, Mutation, MutationProps,
     MutationResult, MutationFn, MutationOptions }           from "react-apollo";
+import { ApolloError }                                      from "apollo-client";
 import { merge, cloneDeep, throttle }                       from "lodash";
 
 /** Signature of the update function which updates the local data and optionally commits the update to the backend. */
@@ -30,8 +31,10 @@ export interface EditorAutosaveProps {
     queryProps?: Partial<QueryProps>;
     /** GraphQL mutation. This overrides the mutation field in the mutationProps object. */
     mutation?: DocumentNode;
-    /** Callback for when the mutation has completed successfully. This overrides the onCompleted callback function in the mutationProps object. */
+    /** Callback for when the mutation has completed successfully. This performs the same function as the onCompleted callback function in the mutationProps object. */
     mutationOnCompleted?: (data: any) => void;
+    /** Callback for when the mutation resulted in an error. This performs the same function as the onError callback function in the mutationProps object. */
+    mutationOnError?: (error: ApolloError) => void;
     /** Additional properties for the mutation. */
     mutationProps?: Partial<MutationProps>;
     /** Render property, with results and update functions. */
@@ -132,9 +135,9 @@ export class EditorAutosave extends React.Component<EditorAutosaveProps> {
     }
 
     public render() {
-        const { query, mutation, mutationOnCompleted, queryVariables, children } = this.props;
+        const { query, mutation, mutationOnCompleted, mutationOnError, queryVariables, children } = this.props;
         let { queryProps, mutationProps } = this.props;
-
+        
         // Override query and query variables
         queryProps = queryProps || {};
         queryProps.query = query || queryProps.query;
@@ -143,8 +146,6 @@ export class EditorAutosave extends React.Component<EditorAutosaveProps> {
         // Override mutation and store onCompleted to call later
         mutationProps = mutationProps || {};
         mutationProps.mutation = mutation || mutationProps.mutation;
-        const mutationOnCompletedFromProps = mutationOnCompleted || mutationProps.onCompleted;
-        delete mutationProps.onCompleted;
 
         return <Query {...queryProps as QueryProps}>
             {(queryResult) => {
@@ -162,12 +163,27 @@ export class EditorAutosave extends React.Component<EditorAutosaveProps> {
                     {...mutationProps as MutationProps}
                     onCompleted={(data) => {
                         // Call the onCompleted function provided by the user of the component
-                        if (mutationOnCompletedFromProps) {
-                            mutationOnCompletedFromProps(data);
+                        if (mutationOnCompleted) {
+                            mutationOnCompleted(data);
+                        }
+                        // Call the original onCompleted method from the props
+                        if (mutationProps && mutationProps.onCompleted) {
+                            mutationProps.onCompleted(data);
+                        }
+                    }}
+                    onError={(error) => {
+                        // Reset the local data from the query
+                        this.localData = cloneDeep(data);
+                        // Call the onError function provided by the user of the component
+                        if (mutationOnError) {
+                            mutationOnError(error);
+                        }
+                        // Call the original onError method from the props
+                        if (mutationProps && mutationProps.onError) {
+                            mutationProps.onError(error);
                         }
                     }}>
                     {(mutate, mutationResult) => {
-
                         // Verify that the throttled mutate function was created
                         this.initMutate(mutate);
 
