@@ -40,7 +40,7 @@ class MyReactComponent {
             mutateOnUpdate={true}      /* automatically perform the mutate when the update
                                           function is called */
         >
-            {({ update, mutate, queryResult: { loading, error, data } }) => {
+            {({ update, queryResult: { loading, error, data } }) => {
                 // deal with loading and error cases
                 if (loading) { return null; }
                 if (error) { return error.message; }
@@ -80,7 +80,15 @@ class MyReactComponent {
 Whenever you change the value that the editor component controls, you call the `update` method, which updates the local data. The component then automatically calls the mutate function (resulting in the autosave behavior). The component uses the lodash `throttle` function to reduce the number of queries to the backend. You can set the throttle wait time and whether the throttle is leading or trailing by changing the `waitTime` (default 3000 ms) and `throttleType` (default "leading") properties.
 
 ### Explicit saving
-You can also explicitly call the mutate function, and switch off autosave by setting the `mutateOnUpdate` prop to `false`. This way, you can still use the local copy of the data and do an explicit save when the user presses a button.
+If you want control over the saving behavior (for example only save when the user presses a button), you can set the `mutateOnUpdate` prop to `false`. Whenever the input changes, call the `update` function:
+```typescript
+update({ user: input });
+```
+
+When the user presses the save button, call the `update` function again to trigger a save explicitly:
+```typescript
+update(undefined, { variables: { id, input } }, true);
+```
 
 ### Combining with validation
-In case of an invalid input, normally you don't want to sync the changes to the backend, but you do want to change the local data, otherwise the user will not be able to see what (s)he is typing/clicking on. To support validation, you can override whether a mutation should happen when you call the `update` function.
+In case of an invalid input, normally you don't want to sync the changes to the backend, but you do want to change the local data, otherwise the user will not be able to see what (s)he is typing/clicking on. To support validation, you can override whether a mutation should happen when you call the `update` function (see the code example in the previous section).
