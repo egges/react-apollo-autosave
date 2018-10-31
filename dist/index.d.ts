@@ -1,9 +1,9 @@
 import React = require("react");
 import { DocumentNode } from "graphql";
-import { QueryProps, QueryResult, OperationVariables, MutationProps, MutationResult, MutationFn, MutationOptions } from "react-apollo";
+import { QueryProps, QueryResult, OperationVariables, MutationProps, MutationResult, MutationOptions } from "react-apollo";
 import { ApolloError } from "apollo-client";
 /** Signature of the update function which updates the local data and optionally commits the update to the backend. */
-export declare type UpdateFunction = (data: any, options?: MutationOptions, mutate?: boolean) => void;
+export declare type UpdateFunction = (data?: any, options?: MutationOptions, mutate?: boolean) => void;
 /** Object of arguments passed to the editor render prop. */
 export interface EditorAutosaveRenderArgs {
     /** The result of the initial query. */
@@ -12,8 +12,6 @@ export interface EditorAutosaveRenderArgs {
     mutationResult: MutationResult;
     /** Change handler that updates the local data and optionally commits the update to the backend (overriding the value of mutateOnUpdate). */
     update: UpdateFunction;
-    /** Optionally Throttled mutation function that commits data to the backend. */
-    mutate: MutationFn;
 }
 /** Editor component properties. */
 export interface EditorAutosaveProps {
@@ -35,7 +33,7 @@ export interface EditorAutosaveProps {
     children: (args: EditorAutosaveRenderArgs) => React.ReactNode;
     /** The time to wait between mutations in ms (default 3000). */
     waitTime?: number;
-    /** Whether to commit an update automatically to the backend when local data is changed. */
+    /** Whether to commit an update automatically to the backend when local data is changed (default true). */
     mutateOnUpdate?: boolean;
     /** Callback for local data changes. */
     onUpdate?: () => void;
@@ -55,19 +53,21 @@ export declare class EditorAutosave extends React.Component<EditorAutosaveProps>
         mutateOnUpdate: boolean;
         throttleType: string;
     };
-    constructor(props: EditorAutosaveProps);
     /** Local copy of the query result data. */
     private localData;
     /** Throttled version of mutation function. */
     private throttledMutate;
-    /** Flag that keeps track of whether the throttled mutation function was already created. */
-    private throttledMutateCreated;
-    /** Creates the throttled mutation function if needed. */
-    private initMutate;
-    /** Updates the local data and triggers a render. */
-    private updateData;
     /** Place to accumulate options while waiting */
     private mergedOptions;
+    /** Creates the throttled mutation function if needed. */
+    private initMutate;
+    /** Merges two objects but overwrites arrays. */
+    private merge;
+    /** Updates the local data, triggers a render, and performs a mutation. */
+    private update;
+    /** Handles updating local data. */
+    private handleUpdateLocalData;
+    /** Handles performing a mutation. */
     private handleMutate;
     render(): JSX.Element;
 }

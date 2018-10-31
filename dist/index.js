@@ -68,13 +68,17 @@ var lodash_1 = require("lodash");
  */
 var EditorAutosave = /** @class */ (function (_super) {
     __extends(EditorAutosave, _super);
-    function EditorAutosave(props) {
-        var _this = _super.call(this, props) || this;
-        /** Flag that keeps track of whether the throttled mutation function was already created. */
-        _this.throttledMutateCreated = false;
+    function EditorAutosave() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        /** Local copy of the query result data. */
+        _this.localData = null;
+        /** Throttled version of mutation function. */
+        _this.throttledMutate = null;
+        /** Place to accumulate options while waiting */
+        _this.mergedOptions = {};
         /** Creates the throttled mutation function if needed. */
         _this.initMutate = function (mutate) {
-            if (_this.throttledMutateCreated) {
+            if (_this.throttledMutate) {
                 return;
             }
             var _a = _this.props, waitTime = _a.waitTime, throttleType = _a.throttleType;
@@ -105,21 +109,24 @@ var EditorAutosave = /** @class */ (function (_super) {
                     }
                 });
             }); }, waitTime, throttleOptions);
-            _this.throttledMutateCreated = true;
         };
-        /** Updates the local data and triggers a render. */
-        _this.updateData = function (data, options, mutate) { return __awaiter(_this, void 0, void 0, function () {
-            var onUpdate, shouldMutate;
-            return __generator(this, function (_a) {
-                onUpdate = this.props.onUpdate;
-                // Update local data
-                lodash_1.merge(this.localData, data);
-                // Callback
-                if (onUpdate) {
-                    onUpdate();
+        /** Merges two objects but overwrites arrays. */
+        _this.merge = function (obj1, obj2) {
+            var customizer = function (objValue, srcValue) {
+                if (lodash_1.isArray(objValue)) {
+                    return srcValue;
                 }
-                // Render
-                this.forceUpdate();
+            };
+            return lodash_1.mergeWith(obj1, obj2, customizer);
+        };
+        /** Updates the local data, triggers a render, and performs a mutation. */
+        _this.update = function (data, options, mutate) { return __awaiter(_this, void 0, void 0, function () {
+            var shouldMutate;
+            return __generator(this, function (_a) {
+                // Handle updating local data
+                if (data) {
+                    this.handleUpdateLocalData(data);
+                }
                 shouldMutate = mutate === undefined || mutate === null ? this.props.mutateOnUpdate : mutate;
                 if (shouldMutate) {
                     return [2 /*return*/, this.handleMutate(options)];
@@ -127,19 +134,30 @@ var EditorAutosave = /** @class */ (function (_super) {
                 return [2 /*return*/];
             });
         }); };
-        /** Place to accumulate options while waiting */
-        _this.mergedOptions = {};
+        /** Handles updating local data. */
+        _this.handleUpdateLocalData = function (data) {
+            var onUpdate = _this.props.onUpdate;
+            _this.merge(_this.localData, data);
+            // Callback
+            if (onUpdate) {
+                onUpdate();
+            }
+            // Render
+            _this.forceUpdate();
+        };
+        /** Handles performing a mutation. */
         _this.handleMutate = function (options) {
-            // Merge options with any previous calls to make sure every input is sent,
-            // and not only the last one
             if (options) {
-                lodash_1.merge(_this.mergedOptions, options);
+                // Merge options with any previous calls to make sure every input is sent,
+                // and not only the last one
+                _this.merge(_this.mergedOptions, options);
+            }
+            if (!_this.throttledMutate) {
+                // this should never happen, but the check is here for safety
+                return;
             }
             return _this.throttledMutate(_this.mergedOptions);
         };
-        _this.throttledMutate = function () { return __awaiter(_this, void 0, void 0, function () { return __generator(this, function (_a) {
-            return [2 /*return*/];
-        }); }); };
         return _this;
     }
     EditorAutosave.prototype.render = function () {
@@ -189,8 +207,7 @@ var EditorAutosave = /** @class */ (function (_super) {
                 // Call the render prop
                 return children({
                     queryResult: queryResult, mutationResult: mutationResult,
-                    update: _this.updateData,
-                    mutate: _this.handleMutate
+                    update: _this.update
                 });
             });
         });
