@@ -9,26 +9,26 @@ import { ApolloError } from "apollo-client";
 import { mergeWith, cloneDeep, throttle, isArray } from "lodash";
 
 /** Signature of the update function which updates the local data and optionally commits the update to the backend. */
-export type UpdateFunction = (data?: any, options?: MutationOptions, mutate?: boolean) => void;
+export type UpdateFunction = (data?: any, options?: MutationOptions, mutate?: boolean, replaceData?: boolean) => void;
 
 /** Object of arguments passed to the editor render prop. */
-export interface EditorAutosaveRenderArgs {
+export interface EditorAutosaveRenderArgs<TQueryData, TQueryVariables, TMutationData> {
     /** The result of the initial query. */
-    queryResult: QueryResult;
+    queryResult: QueryResult<TQueryData, TQueryVariables>;
     /** The result of any subsequent mutation. */
-    mutationResult: MutationResult;
+    mutationResult: MutationResult<TMutationData>;
     /** Change handler that updates the local data and optionally commits the update to the backend (overriding the value of mutateOnUpdate). */
     update: UpdateFunction;
 }
 
 /** Editor component properties. */
-export interface EditorAutosaveProps {
+export interface EditorAutosaveProps<TQueryData = any, TQueryVariables = OperationVariables, TMutationData = any, TMutationVariables = OperationVariables> {
     /** GraphQL query. This overrides the query field in the queryProps object. */
     query?: DocumentNode;
     /** Variables needed for the query. This overrides the variables field in the queryProps object. */
-    queryVariables?: OperationVariables;
+    queryVariables?: TQueryVariables;
     /** Additional properties for the query. */
-    queryProps?: Partial<QueryProps>;
+    queryProps?: QueryProps<TQueryData, TQueryVariables>;
     /** GraphQL mutation. This overrides the mutation field in the mutationProps object. */
     mutation?: DocumentNode;
     /** Callback for when the mutation has completed successfully. This performs the same function as the onCompleted callback function in the mutationProps object. */
@@ -36,9 +36,9 @@ export interface EditorAutosaveProps {
     /** Callback for when the mutation resulted in an error. This performs the same function as the onError callback function in the mutationProps object. */
     mutationOnError?: (error: ApolloError) => void;
     /** Additional properties for the mutation. */
-    mutationProps?: Partial<MutationProps>;
+    mutationProps?: Partial<MutationProps<TMutationData, TMutationVariables>>;
     /** Render property, with results and update functions. */
-    children: (args: EditorAutosaveRenderArgs) => React.ReactNode;
+    children: (args: EditorAutosaveRenderArgs<TQueryData, TQueryVariables, TMutationData>) => React.ReactNode;
     /** The time to wait between mutations in ms (default 3000). */
     waitTime?: number;
     /** Whether to commit an update automatically to the backend when local data is changed (default true). */
@@ -53,7 +53,8 @@ export interface EditorAutosaveProps {
  * Component handling editing fields and syncing with the database, including an autosave using Apollo GraphQL queries and mutations.
  * @class EditorAutosave
  */
-export class EditorAutosave extends React.Component<EditorAutosaveProps> {
+export class EditorAutosave<TQueryData = any, TQueryVariables = OperationVariables, TMutationData = any, TMutationVariables = OperationVariables>
+    extends React.Component<EditorAutosaveProps<TQueryData, TQueryVariables, TMutationData, TMutationVariables>> {
 
     /** Default prop values. */
     public static defaultProps = {
@@ -110,22 +111,26 @@ export class EditorAutosave extends React.Component<EditorAutosaveProps> {
     }
 
     /** Updates the local data, triggers a render, and performs a mutation. */
-    private update = async (data?: any, options?: MutationOptions, mutate?: boolean) => {
+    private update = async (data?: any, options?: MutationOptions, mutate?: boolean, replaceData: boolean = false) => {
         // Handle updating local data
         if (data) {
-            this.handleUpdateLocalData(data);
+            this.handleUpdateLocalData(data, replaceData);
         }
         // Handle mutation
         const shouldMutate = mutate === undefined || mutate === null ? this.props.mutateOnUpdate : mutate;
         if (shouldMutate) {
-            return this.handleMutate(options);
+            return this.handleMutate(options, replaceData);
         }
     }
 
     /** Handles updating local data. */
-    private handleUpdateLocalData = (data: any) => {
+    private handleUpdateLocalData = (data: any, replaceData?: boolean) => {
         const { onUpdate } = this.props;
-        this.merge(this.localData, data);
+        if (replaceData) {
+            this.localData = data;
+        } else {
+            this.merge(this.localData, data);
+        }
         // Callback
         if (onUpdate) { onUpdate(); }
         // Render
@@ -133,11 +138,16 @@ export class EditorAutosave extends React.Component<EditorAutosaveProps> {
     }
 
     /** Handles performing a mutation. */
-    private handleMutate = (options?: MutationOptions) => {
+    private handleMutate = (options?: MutationOptions, replaceData?: boolean) => {
         if (options) {
-            // Merge options with any previous calls to make sure every input is sent,
-            // and not only the last one
-            this.merge(this.mergedOptions, options);
+            if (replaceData) {
+                this.mergedOptions = options;
+            } else {
+                // Merge options with any previous calls to make sure every input is sent,
+                // and not only the last one
+                this.merge(this.mergedOptions, options);
+            }
+
         }
         if (!this.throttledMutate) {
             // this should never happen, but the check is here for safety
@@ -147,19 +157,20 @@ export class EditorAutosave extends React.Component<EditorAutosaveProps> {
     }
 
     public render() {
-        const { query, mutation, mutationOnCompleted, mutationOnError, queryVariables, children } = this.props;
-        let { queryProps, mutationProps } = this.props;
+        const { query, mutation, queryProps, mutationProps, mutationOnCompleted, mutationOnError, queryVariables, children } = this.props;
 
         // Override query and query variables
-        queryProps = queryProps || {};
-        queryProps.query = query || queryProps.query;
-        queryProps.variables = queryVariables || queryProps.variables;
+        if (queryProps) {
+            queryProps.query = query || queryProps.query;
+            queryProps.variables = queryVariables || queryProps.variables;
+        }
 
         // Override mutation and store onCompleted to call later
-        mutationProps = mutationProps || {};
-        mutationProps.mutation = mutation || mutationProps.mutation;
+        if (mutationProps) {
+            mutationProps.mutation = mutation || mutationProps.mutation;
+        }
 
-        return <Query {...queryProps as QueryProps}>
+        return <Query {...queryProps}>
             {(queryResult) => {
                 const { loading, data } = queryResult;
 
@@ -173,14 +184,14 @@ export class EditorAutosave extends React.Component<EditorAutosaveProps> {
 
                 return <Mutation
                     {...mutationProps as MutationProps}
-                    onCompleted={(data) => {
+                    onCompleted={(mutationData) => {
                         // Call the onCompleted function provided by the user of the component
                         if (mutationOnCompleted) {
-                            mutationOnCompleted(data);
+                            mutationOnCompleted(mutationData);
                         }
                         // Call the original onCompleted method from the props
                         if (mutationProps && mutationProps.onCompleted) {
-                            mutationProps.onCompleted(data);
+                            mutationProps.onCompleted(mutationData);
                         }
                     }}
                     onError={(error) => {
